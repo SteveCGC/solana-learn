@@ -60,22 +60,48 @@ async function main() {
         // START HERE
 
         // Create the mint account
-        // const createAccountIx = ???
+        const createAccountIx = SystemProgram.createAccount({
+            fromPubkey: feePayer.publicKey,
+            newAccountPubkey: mint.publicKey,
+            lamports: mintRent,
+            space: MINT_SIZE,
+            programId: TOKEN_PROGRAM_ID,
+        });
 
 
         // Initialize the mint account
         // Set decimals to 6, and the mint and freeze authorities to the fee payer (you).
-        // const initializeMintIx = ???
+        const initializeMintIx = createInitializeMint2Instruction(
+            mint.publicKey,
+            6,
+            feePayer.publicKey,
+            feePayer.publicKey,
+        );
 
 
         // Create the associated token account
-        // const associatedTokenAccount = ???
-        // const createAssociatedTokenAccountIx = ???
+        const associatedTokenAccount = getAssociatedTokenAddressSync(
+            mint.publicKey,
+            feePayer.publicKey,
+        );
+
+        const createAssociatedTokenAccountIx = createAssociatedTokenAccountInstruction(
+            feePayer.publicKey,
+            associatedTokenAccount,
+            feePayer.publicKey,
+            mint.publicKey,
+        );
 
 
         // Mint 21,000,000 tokens to the associated token account
-        // const mintAmount = ???
-        // const mintToCheckedIx = ???
+        const mintAmount = 21_000_000 * 10 ** 6;
+        const mintToCheckedIx = createMintToCheckedInstruction(
+            mint.publicKey,
+            associatedTokenAccount,
+            feePayer.publicKey,
+            mintAmount,
+            6
+        );
 
 
         const recentBlockhash = await connection.getLatestBlockhash();
@@ -94,7 +120,7 @@ async function main() {
         const transactionSignature = await sendAndConfirmTransaction(
             connection,
             transaction,
-            []  // This is the list of signers. Who should be signing this transaction?
+            [feePayer, mint]  // This is the list of signers. Who should be signing this transaction?
         );
 
         console.log("Mint Address:", mint.publicKey.toBase58());
